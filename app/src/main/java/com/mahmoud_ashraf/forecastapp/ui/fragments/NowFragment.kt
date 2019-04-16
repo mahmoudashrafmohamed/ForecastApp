@@ -2,6 +2,7 @@ package com.mahmoud_ashraf.forecastapp.ui.fragments
 
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,9 +12,8 @@ import com.mahmoud_ashraf.forecastapp.R
 import com.mahmoud_ashraf.forecastapp.ui.data.ApixuWeatherApiService
 import kotlinx.android.synthetic.main.fragment_now.*
 import kotlinx.android.synthetic.main.fragment_now.view.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import retrofit2.HttpException
 
 
 class NowFragment : Fragment() {
@@ -34,9 +34,21 @@ class NowFragment : Fragment() {
         val apiService = ApixuWeatherApiService()
 
         // Todo this is for test fetching only ... will be edit later
-        GlobalScope.launch(Dispatchers.Main) {
-            val currentWeatherResponse = apiService.getCurrentWeather("London").await()
-            now_tv.text = currentWeatherResponse.toString()
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val request = apiService.getCurrentWeather("London")
+
+            try {
+                val currentWeatherResponse = request.await()
+                withContext(Dispatchers.Main) {
+                    now_tv.text = currentWeatherResponse.toString()
+                }
+
+            } catch (e: HttpException) {
+            Log.e("REQUEST++++++++", "Exception ${e.message}")
+        } catch (e: Throwable) {
+            Log.e("REQUEST++++++++", "Ooops: Something else went wrong ${e.message}")
+        }
         }
     }
 
