@@ -31,9 +31,10 @@ class NowFragment : Fragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-        val apiService = ApixuWeatherApiService()
+        val apiService = ApixuWeatherApiService()!!.create(ApixuWeatherApiService::class.java)
 
         // Todo this is for test fetching only ... will be edit later
+
         CoroutineScope(Dispatchers.IO).launch {
 
             val request = apiService.getCurrentWeather("London")

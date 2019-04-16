@@ -1,5 +1,6 @@
 package com.mahmoud_ashraf.forecastapp.ui.data
 
+import android.util.Log
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import kotlinx.coroutines.Deferred
 import okhttp3.Interceptor
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit
  */
 
 const val API_KEY = "b8ab28b69ed84f13a33205648191504"
+private var retrofit: Retrofit? = null
 
 //https://api.apixu.com/v1/current.json?key=b8ab28b69ed84f13a33205648191504&q=Paris&lang=en
 
@@ -28,37 +30,52 @@ interface ApixuWeatherApiService {
     ): Deferred<CurrentWeatherResponse>
 
     companion object {
-        operator fun invoke(): ApixuWeatherApiService {
-            val requestInterceptor = Interceptor { chain ->
+        operator fun invoke(): Retrofit? {
 
-                val url = chain.request()
-                    .url()
-                    .newBuilder()
-                    .addQueryParameter("key", API_KEY)
+            // to make it singletone ...
+            if (retrofit == null) {
+
+                Log.e("init retrofit","-----------")
+
+                val requestInterceptor = Interceptor { chain ->
+
+                    val url = chain.request()
+                        .url()
+                        .newBuilder()
+                        .addQueryParameter("key", API_KEY)
+                        .build()
+
+                    val request = chain.request()
+                        .newBuilder()
+                        .url(url)
+                        .build()
+
+
+                    return@Interceptor chain.proceed(request)
+                }
+
+
+                val okHttpClient = OkHttpClient.Builder()
+                    .connectTimeout(5, TimeUnit.MINUTES) // connect timeout
+                    .writeTimeout(5, TimeUnit.MINUTES) // write timeout
+                    .readTimeout(5, TimeUnit.MINUTES) // read timeout
+                    .addInterceptor(requestInterceptor)
                     .build()
 
-                val request = chain.request()
-                    .newBuilder()
-                    .url(url)
+                retrofit = Retrofit.Builder()
+                    .client(okHttpClient)
+                    .baseUrl("https://api.apixu.com/v1/")
+                    .addCallAdapterFactory(CoroutineCallAdapterFactory())
+                    .addConverterFactory(GsonConverterFactory.create())
                     .build()
 
-                return@Interceptor chain.proceed(request)
             }
+            //  .create(ApixuWeatherApiService::class.java)
+            Log.e("return retrofit obj","-----------")
 
-            val okHttpClient = OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.MINUTES) // connect timeout
-                .writeTimeout(5, TimeUnit.MINUTES) // write timeout
-                .readTimeout(5, TimeUnit.MINUTES) // read timeout
-                .addInterceptor(requestInterceptor)
-                .build()
+            return retrofit
 
-            return Retrofit.Builder()
-                .client(okHttpClient)
-                .baseUrl("https://api.apixu.com/v1/")
-                .addCallAdapterFactory(CoroutineCallAdapterFactory())
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(ApixuWeatherApiService::class.java)
+
         }
 
     }
